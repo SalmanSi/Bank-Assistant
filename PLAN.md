@@ -113,8 +113,10 @@ Bank-Assistant/
 ├── pyproject.toml
 ├── PLAN.md                          # This file
 ├── NUST Bank-Product-Knowledge.xlsx
-├── preprocess.py                    # Script 1: Data extraction & cleaning
-├── build_vectordb.py                # Script 2: Chunking, embedding & vector DB
+├── scripts/
+│   ├── __init__.py
+│   ├── preprocess.py                # Script 1: Data extraction & cleaning
+│   └── build_vectordb.py            # Script 2: Chunking, embedding & vector DB
 ├── tests/
 │   ├── __init__.py
 │   ├── test_preprocess.py
@@ -127,7 +129,7 @@ Bank-Assistant/
 
 ---
 
-## Script 1: `preprocess.py`
+## Script 1: `scripts/preprocess.py`
 
 ### Goal
 Extract all content from the Excel file into clean, structured documents per product, handling merged cells, Q&A patterns, and tabular data.
@@ -239,7 +241,7 @@ Save to `data/processed/documents.json` as a JSON array:
 
 ---
 
-## Script 2: `build_vectordb.py`
+## Script 2: `scripts/build_vectordb.py`
 
 ### Goal
 Chunk preprocessed documents, embed with `BAAI/bge-small-en-v1.5`, build a ChromaDB collection on disk, and expose a `load_vectorstore()` helper for Script 3.
@@ -416,14 +418,14 @@ results = collection.query(
 | `test_filtered_query_by_product` | Query with `where={"product": "NUST Waqaar Account"}` returns relevant docs |
 | `test_query_result_fields_present` | Each result has `content`, `product`, `category` fields |
 | `test_vectorstore_persistence` | After closing and reopening, `count()` is the same |
-| `test_rebuild_skipped_if_exists` | Running `build_vectordb.py` a second time does not overwrite existing store |
+| `test_rebuild_skipped_if_exists` | Running `scripts/build_vectordb.py` a second time does not overwrite existing store |
 
 ---
 
 ## Rubric Alignment
 
 ### Data Preprocessing (2 marks)
-- **Anonymization check:** Explicit PII scan logged in `preprocess.py` — confirms no customer data present
+- **Anonymization check:** Explicit PII scan logged in `scripts/preprocess.py` — confirms no customer data present
 - **Clean, reusable pipeline:** Script is idempotent; outputs structured JSON reusable by any downstream consumer
 - **Handling banking data carefully:** Merged cell resolution, formula dereferencing (`data_only=True`), proper handling of multi-row answers
 
