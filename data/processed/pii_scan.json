@@ -1,0 +1,87 @@
+{
+  "cnic_hits": [],
+  "personal_phone_hits": [],
+  "personal_email_hits": [],
+  "bank_email_hits": [
+    {
+      "sheet": "PF",
+      "cell": "B35",
+      "value": "Email Address: CustomerServices@NUSTbank.com.pk",
+      "email": "CustomerServices@NUSTbank.com.pk"
+    },
+    {
+      "sheet": "NMC",
+      "cell": "B36",
+      "value": "Email Address:   CustomerServices@NUSTbank.com.pk",
+      "email": "CustomerServices@NUSTbank.com.pk"
+    },
+    {
+      "sheet": "NMF",
+      "cell": "B65",
+      "value": "Email Address:   CustomerServices@nustbank.com.pk",
+      "email": "CustomerServices@nustbank.com.pk"
+    },
+    {
+      "sheet": "HOME REMITTANCE",
+      "cell": "A21",
+      "value": "For any query/complaint regarding Home Remittance, you may contact our dedicated Remittance Service Centre at UAN# 021-111-000-787. \nYou may also email your queries/complaints at remittance@NUSTbank.com.pk",
+      "email": "remittance@NUSTbank.com.pk"
+    },
+    {
+      "sheet": "HOME REMITTANCE",
+      "cell": "A23",
+      "value": "Please find below contact details for obtaining a PRC and e-PRC:\n •  e-PRC option is also available at the NUST website https://secureportal.NUSTbank.com/eprc/customer to obtain a system generated PRC on your registered email address.                                                                                                                                                                                                                                                                         \n • Proceeds Realization Certificate (PRC) is issued from NUST Centralized Remittance Department. You may contact them at the following email addresses:\nremittance.prc@NUSTbank.com.pk\n",
+      "email": "remittance.prc@NUSTbank.com.pk"
+    }
+  ],
+  "url_hits": [
+    {
+      "sheet": "Rate Sheet July 1 2024",
+      "cell": "B63",
+      "value": "https://askaribank.com/AKBLUploads/uploads/SOC-Conv-English.pdf",
+      "url": "https://askaribank.com/AKBLUploads/uploads/SOC-Conv-English.pdf"
+    },
+    {
+      "sheet": "RDA",
+      "cell": "A24",
+      "value": " https://secureportal.NUSTbank.com/rda/",
+      "url": "https://secureportal.NUSTbank.com/rda/"
+    },
+    {
+      "sheet": "NUST4Car",
+      "cell": "B44",
+      "value": "https://NUSTbank.com/NUSTUploads/uploads/SOC-Conv-English.pdf",
+      "url": "https://NUSTbank.com/NUSTUploads/uploads/SOC-Conv-English.pdf"
+    },
+    {
+      "sheet": "NSA",
+      "cell": "A52",
+      "value": "https://NUSTbank.com/NUSTUploads/uploads/SOC-Conv-English.pdf",
+      "url": "https://NUSTbank.com/NUSTUploads/uploads/SOC-Conv-English.pdf"
+    },
+    {
+      "sheet": "HOME REMITTANCE",
+      "cell": "A19",
+      "value": "https://NUSTbank.com/find-us/",
+      "url": "https://NUSTbank.com/find-us/"
+    },
+    {
+      "sheet": "HOME REMITTANCE",
+      "cell": "A23",
+      "value": "Please find below contact details for obtaining a PRC and e-PRC:\n •  e-PRC option is also available at the NUST website https://secureportal.NUSTbank.com/eprc/customer to obtain a system generated PRC on your registered email address.                                                                                                                                                                                                                                                                         \n • Proceeds Realization Certificate (PRC) is issued from NUST Centralized Remittance Department. You may contact them at the following email addresses:\nremittance.prc@NUSTbank.com.pk\n",
+      "url": "https://secureportal.NUSTbank.com/eprc/customer"
+    },
+    {
+      "sheet": "HOME REMITTANCE",
+      "cell": "A25",
+      "value": "Yes, you can view the status of your remittance online through NUST Remittance Tracker by following link https://NUSTbank.com/services/alternate-delivery-channels/home-remittance-tracking/",
+      "url": "https://NUSTbank.com/services/alternate-delivery-channels/home-remittance-tracking/"
+    },
+    {
+      "sheet": "HOME REMITTANCE",
+      "cell": "A44",
+      "value": "https://NUSTbank.com/services-home-remittance-our-partners/",
+      "url": "https://NUSTbank.com/services-home-remittance-our-partners/"
+    }
+  ]
+}
