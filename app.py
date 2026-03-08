@@ -23,7 +23,7 @@ def get_resources() -> tuple[Any, Any]:
 collection, embedding_model = get_resources()
 
 if "messages" not in st.session_state:
-    st.session_state.message = []
+    st.session_state.messages = []
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
