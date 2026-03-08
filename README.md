@@ -3,6 +3,12 @@
 A RAG project for answering questions about NUST Bank products.
 It reads the bank's Excel knowledge base, turns it into clean documents, builds a local vector database, and answers questions through a Streamlit chat interface powered by a local LLM via Ollama.
 
+## System Architecture
+
+The diagram below shows how data flows through the system — from the raw Excel knowledge base, through preprocessing and vector embedding, to the final RAG-powered chat interface.
+
+![System Architecture](system_architecture.png)
+
 ## What it uses
 
 - Python 3.12
@@ -79,6 +85,12 @@ uv run streamlit run app.py
 ```
 
 Open `http://localhost:8501` in your browser and ask questions about NUST Bank products.
+
+## Usage Example
+
+Below is an example of the chatbot in action, answering a user question about NUST Bank products:
+
+![Chatbot Interface](interface.jpeg)
 
 ## Run tests
 
