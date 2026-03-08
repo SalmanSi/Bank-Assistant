@@ -13,7 +13,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 
-OLLAMA_MODEL = "qwen3:0.6b"
+OLLAMA_MODEL = "qwen3:1.7b"
 
 SYSTEM_PROMPT_TEMPLATE = """You are a helpful bank assistant for NUST Bank. Answer questions about banking products and services using only the context below. Be concise and accurate. If the answer is not in the context, say "I don't have information about that."
 
