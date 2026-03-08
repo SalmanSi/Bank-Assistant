@@ -11,6 +11,8 @@ dependencies = [
     "langchain-community>=0.3.0",
     "langchain-huggingface>=0.1.0",
     "langchain-chroma>=0.2.0",
+    "streamlit>=1.35.0",
+    "ollama>=0.3.0",
 ]
 
 [project.optional-dependencies]

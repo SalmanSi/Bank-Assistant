@@ -13,6 +13,7 @@ from sentence_transformers import SentenceTransformer
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DOCUMENTS_PATH = PROJECT_ROOT / "data/processed/documents.json"
 VECTORSTORE_PATH = PROJECT_ROOT / "data/vectorstore"
+MODEL_CACHE_DIR = PROJECT_ROOT / "data/models"
 COLLECTION_NAME = "bank_knowledge"
 EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
@@ -67,7 +68,13 @@ def chunk_documents(
 
 
 def get_embedding_model(model_name: str = EMBEDDING_MODEL_NAME) -> SentenceTransformer:
-    return SentenceTransformer(model_name)
+    local_path = MODEL_CACHE_DIR / model_name.replace("/", "__")
+    if local_path.exists():
+        return SentenceTransformer(str(local_path))
+    model = SentenceTransformer(model_name)
+    local_path.mkdir(parents=True, exist_ok=True)
+    model.save(str(local_path))
+    return model
 
 
 def encode_texts(model: Any, texts: list[str] | str) -> np.ndarray:
@@ -174,7 +181,7 @@ def query_vectorstore(
     vectorstore_path: Path | str = VECTORSTORE_PATH,
     collection: Collection | None = None,
     model: Any | None = None,
-    top_k: int = 5,
+    top_k: int = 10,
     where: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     collection = collection or load_vectorstore(vectorstore_path)
