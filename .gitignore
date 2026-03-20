@@ -3,4 +3,4 @@ __pycache__
 .pytest_cache
 data/models/
 .~lock.NUST Bank-Product-Knowledge.xlsx#
-
+*.env

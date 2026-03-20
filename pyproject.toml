@@ -13,6 +13,7 @@ dependencies = [
     "langchain-chroma>=0.2.0",
     "streamlit>=1.35.0",
     "ollama>=0.3.0",
+    "llm-guard>=0.3.16",
 ]
 
 [project.optional-dependencies]
@@ -23,10 +24,6 @@ dev = [
 
 [tool.uv]
 extra-index-url = ["https://download.pytorch.org/whl/cpu"]
-dev-dependencies = [
-    "pytest>=8.0.0",
-    "pytest-cov>=5.0.0",
-]
 override-dependencies = [
     "torch>=2.0.0",
     "nvidia-cublas-cu12 ; python_version < '0'",
