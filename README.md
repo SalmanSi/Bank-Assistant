@@ -2,6 +2,7 @@
 
 A RAG project for answering questions about NUST Bank products.
 It reads the bank's Excel knowledge base, turns it into clean documents, builds a local vector database, and answers questions through a Streamlit chat interface powered by a local LLM via Ollama.
+All user input and LLM output passes through a multi-layer security pipeline before anything reaches the model.
 
 ## System Architecture
 
@@ -17,27 +18,42 @@ The diagram below shows how data flows through the system — from the raw Excel
 - `sentence-transformers` (`BAAI/bge-small-en-v1.5`) for embeddings
 - `ChromaDB` for the local vector store
 - `Ollama` + `qwen3:1.7b` as the local LLM
+- `llm-guard` for ML-based input and output scanning
 - `Streamlit` for the chat UI
 - `pytest` for tests
 
 ## Project flow
 
 ```
-scripts/preprocess.py        reads Excel → data/processed/documents.json
-scripts/build_vectordb.py    chunks + embeds → data/vectorstore/
+scripts/preprocess.py        reads Excel -> data/processed/documents.json
+scripts/build_vectordb.py    chunks + embeds -> data/vectorstore/
+scripts/guardrails.py        multi-layer security pipeline (regex + ML scanners)
 scripts/rag_pipeline.py      retrieves context + calls Ollama
 app.py                       Streamlit chat UI
 ```
+
+## Security pipeline
+
+Every query passes through three layers before reaching the LLM, and every response passes through two layers before being returned.
+
+**Input layers:**
+1. Sanity checks (type, empty, length limit)
+2. Regex patterns for jailbreak attempts, off-topic requests, and prompt injection
+3. ML scanners via llm-guard: PromptInjection, Toxicity, BanTopics, Gibberish, TokenLimit, InvisibleText
+
+**Output layers:**
+1. Regex patterns for sensitive data leakage (system prompt markers, card numbers, credentials)
+2. ML scanner via llm-guard: BanTopics (blocks violence, politics, drugs, hacking)
+
+Blocked inputs and outputs return a fixed safe response without ever reaching the LLM.
 
 ## Setup
 
 ### 1. Install uv and Python
 
-Make sure you have `uv` installed, then:
-
 ```bash
 uv python install 3.12
-uv sync --dev --python 3.12
+uv sync --dev --all-extras --python 3.12
 ```
 
 No NVIDIA or CUDA required — this project runs entirely on CPU.
@@ -94,8 +110,14 @@ Below is an example of the chatbot in action, answering a user question about NU
 
 ## Run tests
 
+Unit tests only (fast, no Ollama or llm-guard models needed):
 ```bash
-uv run pytest -q
+uv run pytest tests/test_guardrails.py -v
+```
+
+Full test suite including real ML models and live Ollama (requires Ollama running):
+```bash
+uv run pytest tests/test_guardrails.py -v --run-e2e
 ```
 
 ## Notes
@@ -105,3 +127,4 @@ uv run pytest -q
 - Vector store: [data/vectorstore/](data/vectorstore)
 - Cached embedding model: `data/models/` (excluded from git)
 - Terminal logs show the query, retrieved chunks, and context on every request
+- llm-guard ML models are downloaded on first run and cached by HuggingFace
