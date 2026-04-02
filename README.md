@@ -3,6 +3,7 @@
 A RAG project for answering questions about NUST Bank products.
 It reads the bank's Excel knowledge base, turns it into clean documents, builds a local vector database, and answers questions through a Streamlit chat interface powered by a local LLM via Ollama.
 All user input and LLM output passes through a multi-layer security pipeline before anything reaches the model.
+The system supports real-time knowledge updates — new FAQ documents can be uploaded and become instantly searchable, and outdated information is automatically replaced.
 
 ## System Architecture
 
@@ -27,9 +28,10 @@ The diagram below shows how data flows through the system — from the raw Excel
 ```
 scripts/preprocess.py        reads Excel -> data/processed/documents.json
 scripts/build_vectordb.py    chunks + embeds -> data/vectorstore/
+scripts/document_manager.py  real-time CRUD for vector DB (add/update/delete)
 scripts/guardrails.py        multi-layer security pipeline (regex + ML scanners)
 scripts/rag_pipeline.py      retrieves context + calls Ollama
-app.py                       Streamlit chat UI
+app.py                       Streamlit chat UI with knowledge management sidebar
 ```
 
 ## Security pipeline
@@ -102,6 +104,27 @@ uv run streamlit run app.py
 
 Open `http://localhost:8501` in your browser and ask questions about NUST Bank products.
 
+## Real-Time Knowledge Management
+
+The app sidebar (📚 Knowledge Management) lets you manage the knowledge base without restarting:
+
+- **Upload a JSON file** — supports FAQ format (`{"categories": [...]}`) or documents format (`[{...}]`). Re-uploading the same file automatically replaces old data.
+- **Add a single FAQ** — fill in category, question, and answer to add one entry.
+- **Browse sources** — expand any source to see all its documents. Delete individual documents with one click.
+- **Delete a source** — remove all data from a source at once.
+
+All changes take effect immediately — no rebuild or restart needed.
+
+### How updates work
+
+Each uploaded file is tagged as a **source** (derived from the filename). When the same file is re-uploaded:
+
+1. All existing chunks from that source are deleted
+2. The new file is parsed, chunked, and embedded
+3. New chunks are added to the vector store
+
+This guarantees no stale data remains within a source. Every managed chunk also carries an `ingested_at` timestamp for conflict resolution across sources.
+
 ## Usage Example
 
 Below is an example of the chatbot in action, answering a user question about NUST Bank products:
@@ -110,9 +133,14 @@ Below is an example of the chatbot in action, answering a user question about NU
 
 ## Run tests
 
-Unit tests only (fast, no Ollama or llm-guard models needed):
+All unit tests (no Ollama needed):
 ```bash
-uv run pytest tests/test_guardrails.py -v
+uv run pytest tests/ -v
+```
+
+Document manager tests only:
+```bash
+uv run pytest tests/test_document_manager.py -v
 ```
 
 Full test suite including real ML models and live Ollama (requires Ollama running):
@@ -123,6 +151,7 @@ uv run pytest tests/test_guardrails.py -v --run-e2e
 ## Notes
 
 - Source data: [NUST Bank-Product-Knowledge.xlsx](NUST%20Bank-Product-Knowledge.xlsx)
+- FAQ data: [funds_transfer_app_features_faq (1).json](<funds_transfer_app_features_faq (1).json>)
 - Processed documents: [data/processed/](data/processed)
 - Vector store: [data/vectorstore/](data/vectorstore)
 - Cached embedding model: `data/models/` (excluded from git)

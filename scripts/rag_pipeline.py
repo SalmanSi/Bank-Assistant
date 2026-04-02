@@ -44,7 +44,8 @@ Output rules (must be followed exactly):
 - No chit-chat, no questions back, no greetings, no goodbyes  
 - No emojis unless they are part of normal banking data (dates, account numbers etc.)  
 - If the question cannot be answered using only the text inside OFFICIAL NUST BANK KNOWLEDGE → reply only with:  
-"I don't have information about that."""
+"I don't have information about that."  
+- If you find conflicting information from different sources, prefer the most recently updated information."""
 
 
 def retrieve(
