@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +42,12 @@ def chunk_documents(
         text = document["content"].strip()
         if not text:
             continue
-        parts = splitter.split_text(text)
+            
+        if document.get("type") == "qa_pair" and len(text) < 4000:
+            parts = [text]
+        else:
+            parts = splitter.split_text(text)
+            
         if not parts:
             parts = [text]
         for index, part in enumerate(parts):
@@ -142,7 +148,7 @@ def build_vectorstore(
         )
 
     embeddings = encode_texts(model, [chunk["content"] for chunk in chunks])
-    collection.add(
+    collection.upsert(
         ids=[chunk["id"] for chunk in chunks],
         embeddings=embeddings.tolist(),
         documents=[chunk["content"] for chunk in chunks],
@@ -154,6 +160,8 @@ def build_vectorstore(
                 "chunk_type": chunk["type"],
                 "question": chunk["question"],
                 "category": chunk["category"],
+                "source": "excel::bulk_build",
+                "ingested_at": datetime.now(timezone.utc).isoformat(),
             }
             for chunk in chunks
         ],

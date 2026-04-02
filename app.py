@@ -38,11 +38,30 @@ def get_resources() -> tuple[Any, Any]:
 collection, embedding_model = get_resources()
 
 
-def _source_tag_from_name(filename: str) -> str:
+def _source_tag_from_file(filename: str, filepath: str) -> str:
+    import json
     stem = Path(filename).stem
     stem = re.sub(r"\s*\(\d+\)\s*$", "", stem)
     stem = re.sub(r"[^a-zA-Z0-9_-]", "_", stem)
-    return f"faq::{stem}"
+    
+    prefix = "faq"
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                prefix = "docs"
+    except Exception:
+        pass
+        
+    return f"{prefix}::{stem}"
+
+
+def _format_source_name(source: str) -> str:
+    if "::" in source:
+        cat, name = source.split("::", 1)
+        name = name.replace("_", " ").title()
+        return f"{cat.upper()} — {name}"
+    return source
 
 
 # ---------------------------------------------------------------------------
@@ -83,8 +102,9 @@ with st.sidebar:
     )
 
     # Notification banner
+    notify_placeholder = st.empty()
     if "_notify" in st.session_state:
-        st.success(st.session_state.pop("_notify"), icon=":material/check_circle:")
+        notify_placeholder.success(st.session_state.pop("_notify"), icon=":material/check_circle:")
 
     st.divider()
 
@@ -98,13 +118,24 @@ with st.sidebar:
         st.caption(f":material/storage: {size_kb:.0f} KB on disk")
         st.divider()
         if stats["sources"]:
-            st.markdown("##### Sources")
+            from collections import defaultdict
+            grouped = defaultdict(list)
             for src in stats["sources"]:
-                ts = src.get("latest_ingested_at", "")[:10]
-                meta = f"{src['chunk_count']} chunks"
-                if ts:
-                    meta += f" · {ts}"
-                st.markdown(f":material/database: **{src['source']}**  \n{meta}")
+                if "::" in src["source"]:
+                    cat, name = src["source"].split("::", 1)
+                    name = name.replace("_", " ").title()
+                    grouped[cat.upper()].append((name, src))
+                else:
+                    grouped["OTHER"].append((src["source"], src))
+                    
+            for cat, items in sorted(grouped.items()):
+                st.markdown(f"###### {cat}")
+                for name, src in items:
+                    ts = src.get("latest_ingested_at", "")[:10]
+                    meta = f"{src['chunk_count']} chunks"
+                    if ts:
+                        meta += f" · {ts}"
+                    st.markdown(f":material/database: **{name}**  \n{meta}")
         else:
             st.caption("No sources ingested yet.")
 
@@ -120,28 +151,29 @@ with st.sidebar:
         )
         if uploaded is not None:
             if st.button("Ingest", key="btn_ingest", type="primary", use_container_width=True):
-                try:
-                    with tempfile.NamedTemporaryFile(
-                        delete=False, suffix=".json", mode="wb"
-                    ) as tmp:
-                        tmp.write(uploaded.getvalue())
-                        tmp_path = tmp.name
+                with st.spinner("Processing & embedding document. This might take a moment..."):
+                    try:
+                        with tempfile.NamedTemporaryFile(
+                            delete=False, suffix=".json", mode="wb"
+                        ) as tmp:
+                            tmp.write(uploaded.getvalue())
+                            tmp_path = tmp.name
 
-                    source = _source_tag_from_name(uploaded.name)
-                    result = ingest_file(
-                        tmp_path, collection, embedding_model,
-                        source_tag=source,
-                    )
-                    Path(tmp_path).unlink(missing_ok=True)
-                    st.session_state["_notify"] = (
-                        f"Ingested **{result['added']}** chunks "
-                        f"(replaced {result['deleted']} old) "
-                        f"from `{result['source']}`"
-                    )
-                    st.session_state["_upload_counter"] = upload_counter + 1
-                    st.rerun()
-                except Exception as exc:
-                    st.error(str(exc))
+                        source = _source_tag_from_file(uploaded.name, tmp_path)
+                        result = ingest_file(
+                            tmp_path, collection, embedding_model,
+                            source_tag=source,
+                        )
+                        Path(tmp_path).unlink(missing_ok=True)
+                        st.session_state["_notify"] = (
+                            f"Ingested **{result['added']}** chunks "
+                            f"(replaced {result['deleted']} old) "
+                            f"from `{result['source']}`"
+                        )
+                        st.session_state["_upload_counter"] = upload_counter + 1
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(str(exc))
 
     # ── Add entry ─────────────────────────────────────────────────────────
     elif section == ":material/post_add: Add":
@@ -186,47 +218,68 @@ with st.sidebar:
         if not sources:
             st.info("No sources in the knowledge base yet.")
         else:
+            from collections import defaultdict
+            grouped = defaultdict(list)
             for src_info in sources:
-                src_name = src_info["source"]
-                with st.expander(src_name, expanded=False):
-                    chunk_count = src_info["chunk_count"]
-                    ts = src_info.get("latest_ingested_at", "")[:19]
-                    st.caption(
-                        f"{chunk_count} chunks · {ts}" if ts else f"{chunk_count} chunks"
-                    )
+                if "::" in src_info["source"]:
+                    cat, name = src_info["source"].split("::", 1)
+                    name = name.replace("_", " ").title()
+                    grouped[cat.upper()].append((name, src_info))
+                else:
+                    grouped["OTHER"].append((src_info["source"], src_info))
 
-                    docs = list_documents(collection, source=src_name)
-                    docs = [d for d in docs if d["parent_id"] not in deleted_pids]
+            for cat, items in sorted(grouped.items()):
+                st.markdown(f"##### {cat}")
+                for name, src_info in items:
+                    src_name = src_info["source"]
+                    with st.expander(name, expanded=False):
+                        chunk_count = src_info["chunk_count"]
+                        ts = src_info.get("latest_ingested_at", "")[:19]
+                        st.caption(
+                            f"{chunk_count} chunks · {ts}" if ts else f"{chunk_count} chunks"
+                        )
 
-                    if not docs:
-                        st.caption("No documents.")
-                        continue
+                        docs = list_documents(collection, source=src_name)
+                        docs = [d for d in docs if d["parent_id"] not in deleted_pids]
 
-                    for doc_info in docs:
-                        pid = doc_info["parent_id"]
-                        q = doc_info.get("question") or ""
-                        preview = doc_info.get("content_preview", "")[:100]
-                        product = doc_info.get("product", "")
+                        if not docs:
+                            st.caption("No documents.")
+                            continue
 
-                        label = f"**{pid}**"
-                        if product:
-                            label += f" · {product}"
-                        if q:
-                            label += f"  \n{q}"
-                        elif preview:
-                            label += f"  \n{preview}..."
+                        page_key = f"page_{src_name}"
+                        current_page = st.session_state.get(page_key, 1)
+                        RENDER_LIMIT = 50 * current_page
+                        
+                        for doc_info in docs[:RENDER_LIMIT]:
+                            pid = doc_info["parent_id"]
+                            q = doc_info.get("question") or ""
+                            preview = doc_info.get("content_preview", "")[:100]
+                            product = doc_info.get("product", "")
 
-                        cols = st.columns([5, 1])
-                        with cols[0]:
-                            st.markdown(label)
-                        with cols[1]:
-                            st.button(
-                                "×",
-                                key=f"del_{pid}",
-                                on_click=_cb_delete_document,
-                                args=(pid,),
-                                help=f"Remove {pid}",
-                            )
+                            label = f"**{pid}**"
+                            if product:
+                                label += f" · {product}"
+                            if q:
+                                label += f"  \n{q}"
+                            elif preview:
+                                label += f"  \n{preview}..."
+
+                            cols = st.columns([5, 1])
+                            with cols[0]:
+                                st.markdown(label)
+                            with cols[1]:
+                                st.button(
+                                    ":material/delete:",
+                                    key=f"del_{pid}",
+                                    on_click=_cb_delete_document,
+                                    args=(pid,),
+                                    help=f"Remove {pid}",
+                                )
+                                
+                        if len(docs) > RENDER_LIMIT:
+                            if st.button("Load More", key=f"load_more_{src_name}"):
+                                st.session_state[page_key] = current_page + 1
+                                st.rerun()
 
     # ── Remove source ─────────────────────────────────────────────────────
     elif section == ":material/delete_sweep: Remove":
@@ -238,6 +291,7 @@ with st.sidebar:
             selected_source = st.selectbox(
                 "Source",
                 source_names,
+                format_func=_format_source_name,
                 key="delete_source_select",
                 label_visibility="collapsed",
             )

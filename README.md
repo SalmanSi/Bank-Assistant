@@ -106,14 +106,15 @@ Open `http://localhost:8501` in your browser and ask questions about NUST Bank p
 
 ## Real-Time Knowledge Management
 
-The app sidebar (📚 Knowledge Management) lets you manage the knowledge base without restarting:
+The app sidebar (`Knowledge Base`) provides a robust, state-persistent tab structure for managing the database dynamically:
 
-- **Upload a JSON file** — supports FAQ format (`{"categories": [...]}`) or documents format (`[{...}]`). Re-uploading the same file automatically replaces old data.
-- **Add a single FAQ** — fill in category, question, and answer to add one entry.
-- **Browse sources** — expand any source to see all its documents. Delete individual documents with one click.
-- **Delete a source** — remove all data from a source at once.
+- **Overview** — High-level dashboard displaying total chunks, active sources, and disk storage metrics.
+- **Upload** — Drops in JSON files for processing. It intelligently auto-detects standard document arrays (`docs::`) vs categorized FAQ structures (`faq::`), mapping them appropriately. It leverages `upsert` functionality to deliberately overwrite overlapping collision IDs to prevent duplicate vectors or silent failure drops. 
+- **Add** — Quickly inject single manual Q&A pairs directly into the store.
+- **Browse** — Interactive expanding categorical library of ingested sources. It features a scalable `Load More` paginated viewer handling thousands of vector embeddings without freezing the backend, and includes 1-click single-chunk trash deletion.
+- **Remove** — Permanently purges entire origin sources from the database and updates the active context.
 
-All changes take effect immediately — no rebuild or restart needed.
+All changes take effect immediately — no rebuild, app crash, or system restart needed.
 
 ### How updates work
 
@@ -145,7 +146,7 @@ uv run pytest tests/test_document_manager.py -v
 
 Full test suite including real ML models and live Ollama (requires Ollama running):
 ```bash
-uv run pytest tests/test_guardrails.py -v --run-e2e
+uv run pytest tests/ -v --run-e2e
 ```
 
 ## Notes

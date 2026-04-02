@@ -156,7 +156,7 @@ def add_documents(
     now = _now_iso()
 
     # 4. Add with source + timestamp
-    collection.add(
+    collection.upsert(
         ids=[c["id"] for c in chunks],
         embeddings=embeddings.tolist(),
         documents=[c["content"] for c in chunks],
@@ -200,7 +200,7 @@ def add_single_document(
     embeddings = encode_texts(model, [c["content"] for c in chunks])
     now = _now_iso()
 
-    collection.add(
+    collection.upsert(
         ids=[c["id"] for c in chunks],
         embeddings=embeddings.tolist(),
         documents=[c["content"] for c in chunks],
@@ -368,7 +368,7 @@ def _delete_chunks_by_metadata(
 ) -> int:
     """Delete all chunks where ``metadata[key] == value``.  Returns count deleted."""
     try:
-        existing = collection.get(where={key: value})
+        existing = collection.get(where={key: value}, include=[])
     except Exception:
         return 0
     ids = existing.get("ids") or []
