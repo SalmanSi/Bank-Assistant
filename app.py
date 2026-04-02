@@ -39,7 +39,6 @@ collection, embedding_model = get_resources()
 
 
 def _source_tag_from_name(filename: str) -> str:
-    """Derive a stable source tag from an uploaded filename."""
     stem = Path(filename).stem
     stem = re.sub(r"\s*\(\d+\)\s*$", "", stem)
     stem = re.sub(r"[^a-zA-Z0-9_-]", "_", stem)
@@ -47,70 +46,80 @@ def _source_tag_from_name(filename: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Callbacks — run BEFORE the rerun, so state is updated before rendering
+# Callbacks
 # ---------------------------------------------------------------------------
 
 
 def _cb_delete_document(pid: str) -> None:
-    """on_click callback: delete a document and track it."""
     count = delete_document(pid, collection)
     st.session_state.setdefault("_deleted_pids", set()).add(pid)
-    st.session_state["_notify"] = f"✅ Deleted chunk `{pid}` ({count} chunk(s) removed)"
+    st.session_state["_notify"] = f"Removed **{pid}** ({count} chunk(s))"
 
 
 def _cb_delete_source(source: str) -> None:
-    """on_click callback: delete all chunks for a source."""
     count = delete_by_source(source, collection)
-    st.session_state["_notify"] = f"✅ Deleted {count} chunks from `{source}`"
+    st.session_state["_notify"] = f"Removed **{source}** ({count} chunks)"
 
 
 # ---------------------------------------------------------------------------
-# Sidebar: Knowledge Management
+# Sidebar
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
-    st.header("📚 Knowledge Management")
+    st.subheader("Knowledge Base")
 
-    # ── Floating notification banner ──────────────────────────────────────
-    # ── Section picker (persists across reruns via key) ──────────────────
-    section = st.selectbox(
-        "Section",
-        ["📊 Stats", "📤 Upload File", "➕ Add FAQ", "📋 Browse Sources", "🗑️ Delete Source"],
-        key="_sidebar_section",
+    section = st.pills(
+        "nav",
+        [
+            ":material/dashboard: Overview",
+            ":material/upload_file: Upload",
+            ":material/post_add: Add",
+            ":material/folder_open: Browse",
+            ":material/delete_sweep: Remove",
+        ],
+        default=":material/dashboard: Overview",
+        key="_nav",
         label_visibility="collapsed",
     )
 
-    # ── Notification banner ────────────────────────────────────────────────
+    # Notification banner
     if "_notify" in st.session_state:
-        msg = st.session_state.pop("_notify")
-        if "✅" in msg:
-            st.success(msg)
-        elif "❌" in msg:
-            st.error(msg)
-        else:
-            st.info(msg)
+        st.success(st.session_state.pop("_notify"), icon=":material/check_circle:")
 
-    # ── Stats ──────────────────────────────────────────────────────────────
-    if section == "📊 Stats":
+    st.divider()
+
+    # ── Overview ──────────────────────────────────────────────────────────
+    if section == ":material/dashboard: Overview":
         stats = get_stats(collection)
-        st.metric("Total Chunks", stats["total_chunks"])
-        st.metric("Sources", stats["source_count"])
+        c1, c2 = st.columns(2)
+        c1.metric("Chunks", stats["total_chunks"])
+        c2.metric("Sources", stats["source_count"])
         size_kb = stats["disk_size_bytes"] / 1024
-        st.metric("Disk Size", f"{size_kb:.1f} KB")
+        st.caption(f":material/storage: {size_kb:.0f} KB on disk")
+        st.divider()
+        if stats["sources"]:
+            st.markdown("##### Sources")
+            for src in stats["sources"]:
+                ts = src.get("latest_ingested_at", "")[:10]
+                meta = f"{src['chunk_count']} chunks"
+                if ts:
+                    meta += f" · {ts}"
+                st.markdown(f":material/database: **{src['source']}**  \n{meta}")
+        else:
+            st.caption("No sources ingested yet.")
 
-    # ── Upload File ────────────────────────────────────────────────────────
-    elif section == "📤 Upload File":
-        st.caption(
-            "Upload a `.json` file — FAQ format or documents format."
-        )
+    # ── Upload ────────────────────────────────────────────────────────────
+    elif section == ":material/upload_file: Upload":
+        st.caption(":material/info: Accepts FAQ format or documents format (.json)")
         upload_counter = st.session_state.get("_upload_counter", 0)
         uploaded = st.file_uploader(
-            "Choose a JSON file",
+            "File",
             type=["json"],
             key=f"file_uploader_{upload_counter}",
+            label_visibility="collapsed",
         )
         if uploaded is not None:
-            if st.button("Ingest File", key="btn_ingest", type="primary"):
+            if st.button("Ingest", key="btn_ingest", type="primary", use_container_width=True):
                 try:
                     with tempfile.NamedTemporaryFile(
                         delete=False, suffix=".json", mode="wb"
@@ -125,27 +134,28 @@ with st.sidebar:
                     )
                     Path(tmp_path).unlink(missing_ok=True)
                     st.session_state["_notify"] = (
-                        f"✅ Ingested {result['added']} chunks "
+                        f"Ingested **{result['added']}** chunks "
                         f"(replaced {result['deleted']} old) "
-                        f"— source: {result['source']}"
+                        f"from `{result['source']}`"
                     )
                     st.session_state["_upload_counter"] = upload_counter + 1
                     st.rerun()
                 except Exception as exc:
-                    st.error(f"❌ Error: {exc}")
+                    st.error(str(exc))
 
-    # ── Add Single FAQ ─────────────────────────────────────────────────────
-    elif section == "➕ Add FAQ":
+    # ── Add entry ─────────────────────────────────────────────────────────
+    elif section == ":material/post_add: Add":
+        st.caption(":material/edit_note: Add a single Q&A entry to the knowledge base")
         with st.form("add_faq_form", clear_on_submit=True):
             faq_category = st.text_input("Category", placeholder="e.g. Funds Transfer")
-            faq_product = st.text_input("Product (optional)", placeholder="e.g. Mobile App")
-            faq_question = st.text_area("Question", placeholder="Enter the question")
-            faq_answer = st.text_area("Answer", placeholder="Enter the answer")
-            submitted = st.form_submit_button("Add FAQ", type="primary")
+            faq_product = st.text_input("Product *(optional)*", placeholder="e.g. Mobile App")
+            faq_question = st.text_area("Question")
+            faq_answer = st.text_area("Answer")
+            submitted = st.form_submit_button("Add entry", type="primary", use_container_width=True)
 
         if submitted:
             if not faq_question.strip() or not faq_answer.strip():
-                st.error("❌ Question and Answer are required.")
+                st.warning("Both question and answer are required.")
             else:
                 q_hash = hashlib.md5(faq_question.strip().encode()).hexdigest()[:8]
                 doc = {
@@ -162,33 +172,34 @@ with st.sidebar:
                         doc, "manual::single_faq", collection, embedding_model
                     )
                     st.session_state["_notify"] = (
-                        f"✅ Added FAQ ({result['added']} chunk(s)). ID: {doc['id']}"
+                        f"Added entry **{doc['id']}** ({result['added']} chunk(s))"
                     )
                     st.rerun()
                 except Exception as exc:
-                    st.error(f"❌ Error: {exc}")
+                    st.error(str(exc))
 
-    # ── Browse Sources ─────────────────────────────────────────────────────
-    elif section == "📋 Browse Sources":
+    # ── Browse ────────────────────────────────────────────────────────────
+    elif section == ":material/folder_open: Browse":
         deleted_pids: set = st.session_state.setdefault("_deleted_pids", set())
         sources = list_sources(collection)
 
         if not sources:
-            st.info("No sources found.")
+            st.info("No sources in the knowledge base yet.")
         else:
             for src_info in sources:
                 src_name = src_info["source"]
-                # Stable label — no chunk count so it doesn't change on delete
-                with st.expander(f"📁 {src_name}", expanded=False):
+                with st.expander(src_name, expanded=False):
                     chunk_count = src_info["chunk_count"]
                     ts = src_info.get("latest_ingested_at", "")[:19]
-                    st.caption(f"{chunk_count} chunks · last updated {ts}" if ts else f"{chunk_count} chunks")
+                    st.caption(
+                        f"{chunk_count} chunks · {ts}" if ts else f"{chunk_count} chunks"
+                    )
 
                     docs = list_documents(collection, source=src_name)
                     docs = [d for d in docs if d["parent_id"] not in deleted_pids]
 
                     if not docs:
-                        st.caption("No documents in this source.")
+                        st.caption("No documents.")
                         continue
 
                     for doc_info in docs:
@@ -197,45 +208,45 @@ with st.sidebar:
                         preview = doc_info.get("content_preview", "")[:100]
                         product = doc_info.get("product", "")
 
-                        display = f"**{pid}**"
+                        label = f"**{pid}**"
                         if product:
-                            display += f" · {product}"
+                            label += f" · {product}"
                         if q:
-                            display += f"  \n> {q}"
+                            label += f"  \n{q}"
                         elif preview:
-                            display += f"  \n> {preview}..."
+                            label += f"  \n{preview}..."
 
                         cols = st.columns([5, 1])
                         with cols[0]:
-                            st.markdown(display)
+                            st.markdown(label)
                         with cols[1]:
-                            # on_click runs BEFORE rerun — item will be
-                            # in deleted_pids by the time we render again,
-                            # so it disappears without closing the expander
                             st.button(
-                                "🗑️",
+                                "×",
                                 key=f"del_{pid}",
                                 on_click=_cb_delete_document,
                                 args=(pid,),
+                                help=f"Remove {pid}",
                             )
 
-    # ── Delete Source ───────────────────────────────────────────────────────
-    elif section == "🗑️ Delete Source":
+    # ── Remove source ─────────────────────────────────────────────────────
+    elif section == ":material/delete_sweep: Remove":
         sources = list_sources(collection)
         source_names = [s["source"] for s in sources]
         if not source_names:
-            st.info("No sources to delete.")
+            st.info("No sources available.")
         else:
             selected_source = st.selectbox(
-                "Select source to delete",
+                "Source",
                 source_names,
                 key="delete_source_select",
+                label_visibility="collapsed",
             )
-            st.warning(f"This will delete **all** data from `{selected_source}`.")
+            st.caption(f"All data from **{selected_source}** will be permanently removed.")
             st.button(
-                "Delete Source",
+                "Remove source",
                 key="btn_delete_source",
                 type="primary",
+                use_container_width=True,
                 on_click=_cb_delete_source,
                 args=(selected_source,),
             )
