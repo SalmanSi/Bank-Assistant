@@ -126,6 +126,18 @@ Each uploaded file is tagged as a **source** (derived from the filename). When t
 
 This guarantees no stale data remains within a source. Every managed chunk also carries an `ingested_at` timestamp for conflict resolution across sources.
 
+## Conversational Memory & Context Compression
+
+To handle "infinite context" without breaking token limits, the application features an active continuous summarization engine.
+
+- **Query Rewriting:** Follow-up questions (like "tell me more" or "how do I open it?") pass through an initial LLM phase parameterized by your chat history to automatically transform them into robust, standalone search queries before hitting the vector store.
+- **Active Summarization:** Instead of silently dropping older messages, the backend watches your active token footprint. When limits are exceeded, older interactions are dynamically merged into a persistent conversation summary. This ensures no contextual loss.
+
+### Memory Configuration
+Memory retention limits are fully configurable directly in an `.env` file (loaded automatically via `python-dotenv`):
+- `MAX_HISTORY_MESSAGES`: Defines how many conversational turns the model holds raw before compressing it. (Default: 20)
+- `MAX_HISTORY_TOKENS`: A fail-safe limit; triggers summarization if active raw messages exceed this token length estimation. (Default: 20000)
+
 ## Usage Example
 
 Below is an example of the chatbot in action, answering a user question about NUST Bank products:

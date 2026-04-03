@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import hashlib
 import re
 import tempfile
@@ -315,18 +318,41 @@ st.caption(f"Powered by {OLLAMA_MODEL} via Ollama")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "backend_messages" not in st.session_state:
+    st.session_state.backend_messages = []
+if "memory_summary" not in st.session_state:
+    st.session_state.memory_summary = ""
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ask about NUST Bank products..."):
+    # Append to UI messages only for now
     st.session_state.messages.append({"role": "user", "content": prompt})
+    
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        stream = ask(prompt, collection=collection, model=embedding_model, stream=True)
+        from scripts.rag_pipeline import manage_memory
+        
+        # Compact backend memory before answering
+        new_summary, kept_history = manage_memory(
+            st.session_state.memory_summary,
+            st.session_state.backend_messages
+        )
+        st.session_state.memory_summary = new_summary
+        st.session_state.backend_messages = kept_history
+
+        stream = ask(
+            prompt,
+            collection=collection,
+            model=embedding_model,
+            stream=True,
+            chat_history=kept_history,
+            memory_summary=new_summary,
+        )
 
         def _token_gen():
             for chunk in stream:
@@ -334,4 +360,18 @@ if prompt := st.chat_input("Ask about NUST Bank products..."):
 
         response: str = st.write_stream(_token_gen())
 
+    # After response, append both to UI and backend message queues
     st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.backend_messages.append({"role": "user", "content": prompt})
+    st.session_state.backend_messages.append({"role": "assistant", "content": response})
+
+# ---------------------------------------------------------------------------
+# Developer Debug View
+# ---------------------------------------------------------------------------
+with st.sidebar.expander("🛠️ Developer State Inspector", expanded=False):
+    st.markdown("**Memory Summary:**")
+    summary_text = st.session_state.get("memory_summary", "")
+    st.info(summary_text if summary_text else "No summarization triggered yet.")
+    
+    st.markdown(f"**Backend Messages Buffer ({len(st.session_state.get('backend_messages', []))}):**")
+    st.json(st.session_state.get("backend_messages", []))
