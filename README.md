@@ -198,24 +198,6 @@ The project includes a comprehensive evaluation framework for the retrieval step
 PYTHONPATH=. uv run python eval/evaluate_retrieval.py
 ```
 
-### Evaluation Results
-
-| Metric | Value |
-|--------|-------|
-| **Hit Rate@1** | 37.93% |
-| **Hit Rate@3** | 44.83% |
-| **Hit Rate@5** | 48.28% |
-| **Hit Rate@10** | 58.62% |
-| **MRR** (Mean Reciprocal Rank) | 0.4355 |
-| **MAP** (Mean Average Precision) | 0.3357 |
-| **NDCG@5** | 0.4210 |
-| **Precision@5** | 0.1724 |
-| **Recall@5** | 0.3417 |
-
-### Distance Analysis
-- Relevant docs: Mean distance = 0.2175
-- Irrelevant docs: Mean distance = 0.3196
-
 The retrieval system shows good performance on specific factual queries (rates, remittance limits, eligibility criteria) but struggles with queries requiring cross-referencing multiple product categories or app-specific features not well-represented in the Excel knowledge base.
 
 Detailed results are saved to `data/eval_results.json`.
