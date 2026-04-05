@@ -492,6 +492,34 @@ def parse_rate_sheet(workbook: Workbook) -> list[dict[str, Any]]:
     return documents
 
 
+def parse_additional_faqs(json_path: Path) -> list[dict[str, Any]]:
+    if not json_path.exists():
+        return []
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        
+    documents: list[dict[str, Any]] = []
+    mapping = {
+        "Funds Transfer / RAAST": ("FT", "Funds Transfer", "liability"),
+        "App Features / Functionalities": ("AF", "App Features", "liability")
+    }
+    
+    for category_data in data.get("categories", []):
+        cat_name = category_data.get("category", "")
+        questions = category_data.get("questions", [])
+        
+        prefix, product, doc_category = mapping.get(cat_name, ("FAQ", cat_name, "liability"))
+        
+        for idx, q_data in enumerate(questions, start=1):
+            q = clean_text(q_data.get("question", ""))
+            a = clean_text(q_data.get("answer", ""))
+            doc_id = f"{prefix}_{idx:03d}"
+            content = f"Q: {q}\nA: {a}"
+            documents.append(create_document(doc_id, product, cat_name, "qa_pair", doc_category, content, q))
+            
+    return documents
+
+
 def preprocess_workbook(
     workbook_path: Path | str = WORKBOOK_PATH,
     output_path: Path | str = OUTPUT_PATH,
@@ -505,6 +533,9 @@ def preprocess_workbook(
     category_map, product_name_map = parse_main_sheet(workbook)
     documents: list[dict[str, Any]] = []
     documents.extend(parse_rate_sheet(workbook))
+    
+    faq_path = PROJECT_ROOT / "funds_transfer_app_features_faq (1).json"
+    documents.extend(parse_additional_faqs(faq_path))
 
     for sheet_name in workbook.sheetnames:
         if sheet_name in SKIP_SHEETS:
