@@ -1,3 +1,10 @@
+"""
+Data Preprocessing module for the NUST Bank Assistant.
+
+Reads the raw Excel knowledge base, cleans messy formatting, unmerges cells,
+extracts structured Data (FAQs, rates, limits), detects and logs PII occurrences,
+and outputs an array of structured JSON documents ready for embedding.
+"""
 from __future__ import annotations
 
 import json
@@ -110,12 +117,14 @@ FALLBACK_SHEET_CATEGORIES = {
 
 
 def normalize_key(text: str) -> str:
+    """Normalize text into a unified lowercase keyword representation for map matching."""
     lowered = text.lower().replace("&", " ")
     lowered = re.sub(r"[^a-z0-9]+", " ", lowered)
     return re.sub(r"\s+", " ", lowered).strip()
 
 
 def clean_text(value: Any, *, remove_urls: bool = True) -> str:
+    """Sanitize and unify strings (strips whitespaces, transforms bullets)."""
     if value is None:
         return ""
     text = str(value).replace("\xa0", " ").replace("\t", " ")
@@ -317,6 +326,7 @@ def create_document(
     content: str,
     question: str | None = None,
 ) -> dict[str, Any]:
+    """Helper struct builder for a document."""
     return {
         "id": doc_id,
         "product": product,
@@ -487,6 +497,7 @@ def preprocess_workbook(
     output_path: Path | str = OUTPUT_PATH,
     pii_output_path: Path | str = PII_SCAN_PATH,
 ) -> list[dict[str, Any]]:
+    """Master preprocessing pipeline matching all extraction logic and writing the artifacts."""
     workbook = load_bank_workbook(workbook_path)
     pii_summary = scan_pii(workbook)
     write_pii_summary(pii_summary, Path(pii_output_path))

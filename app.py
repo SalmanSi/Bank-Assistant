@@ -1,3 +1,9 @@
+"""
+Main Streamlit application for the NUST Bank Assistant.
+
+Provides a chat interface for users to ask questions about bank products,
+and a sidebar for managing the vector database (uploading, adding, browsing, and removing sources).
+"""
 from __future__ import annotations
 
 from dotenv import load_dotenv
@@ -42,6 +48,7 @@ collection, embedding_model = get_resources()
 
 
 def _source_tag_from_file(filename: str, filepath: str) -> str:
+    """Derive a consistent source tag from an uploaded file's name and content."""
     import json
     stem = Path(filename).stem
     stem = re.sub(r"\s*\(\d+\)\s*$", "", stem)
@@ -60,6 +67,7 @@ def _source_tag_from_file(filename: str, filepath: str) -> str:
 
 
 def _format_source_name(source: str) -> str:
+    """Format a raw source tag (e.g., 'faq::my_file') into a readable string."""
     if "::" in source:
         cat, name = source.split("::", 1)
         name = name.replace("_", " ").title()
@@ -73,12 +81,14 @@ def _format_source_name(source: str) -> str:
 
 
 def _cb_delete_document(pid: str) -> None:
+    """Callback to delete a specific document by its parent ID."""
     count = delete_document(pid, collection)
     st.session_state.setdefault("_deleted_pids", set()).add(pid)
     st.session_state["_notify"] = f"Removed **{pid}** ({count} chunk(s))"
 
 
 def _cb_delete_source(source: str) -> None:
+    """Callback to delete an entire source and all its associated documents."""
     count = delete_by_source(source, collection)
     st.session_state["_notify"] = f"Removed **{source}** ({count} chunks)"
 

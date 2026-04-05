@@ -1,3 +1,10 @@
+"""
+Security Pipeline module for the NUST Bank Assistant.
+
+Provides a multi-layered guardrail system to prevent prompt injections, 
+jailbreak attempts, off-topic requests, and sensitive data leakage (PII/Card Numbers).
+Utilizes RegEx checks alongside ML-based llm-guard models.
+"""
 from __future__ import annotations
 
 import logging

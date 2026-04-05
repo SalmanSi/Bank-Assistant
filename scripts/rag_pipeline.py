@@ -1,3 +1,10 @@
+"""
+RAG Pipeline module for the NUST Bank Assistant.
+
+Handles retrieval from the vector database, building prompt contexts,
+managing the LLM query rewriting phase for context-awareness,
+handling conversational memory via active summarization, and calling the Ollama local model.
+"""
 from __future__ import annotations
 
 import logging

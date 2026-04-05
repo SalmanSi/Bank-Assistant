@@ -4,4 +4,4 @@ __pycache__
 data/models/
 .~lock.NUST Bank-Product-Knowledge.xlsx#
 *.env
-./data/vectorstore
+data/vectorstore/

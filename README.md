@@ -7,7 +7,13 @@ The system supports real-time knowledge updates — new FAQ documents can be upl
 
 ## System Architecture
 
-The diagram below shows how data flows through the system — from the raw Excel knowledge base, through preprocessing and vector embedding, to the final RAG-powered chat interface.
+The project is built on a clean, modular architecture. The data flow starts from the raw Excel knowledge base, moves through preprocessing and vector indexing, and finally reaches the RAG-powered chat interface.
+The main components are:
+* **Ingestion (`scripts/preprocess.py`)**: Cleans and extracts text from bank spreadsheets.
+* **Embeddings & Vectorstore (`scripts/build_vectordb.py` & `scripts/document_manager.py`)**: Chunks documents, embeds using `bge-small-en-v1.5`, and handles DB state.
+* **Security Guardrails (`scripts/guardrails.py`)**: Scans all LLM inputs and outputs using ML and custom regex rules.
+* **LLM Integration (`scripts/rag_pipeline.py`)**: Interfaces with Ollama locally with contextual querying.
+* **User Interface (`app.py`)**: A Streamlit chat UI for live interaction and database management.
 
 ![System Architecture](system_architecture.png)
 
@@ -109,22 +115,45 @@ Open `http://localhost:8501` in your browser and ask questions about NUST Bank p
 The app sidebar (`Knowledge Base`) provides a robust, state-persistent tab structure for managing the database dynamically:
 
 - **Overview** — High-level dashboard displaying total chunks, active sources, and disk storage metrics.
-- **Upload** — Drops in JSON files for processing. It intelligently auto-detects standard document arrays (`docs::`) vs categorized FAQ structures (`faq::`), mapping them appropriately. It leverages `upsert` functionality to deliberately overwrite overlapping collision IDs to prevent duplicate vectors or silent failure drops. 
+- **Upload** — Drops in JSON files for processing. It intelligently auto-detects standard document arrays vs categorized FAQ structures. It leverages `upsert` to deliberately overwrite overlapping collision IDs.
 - **Add** — Quickly inject single manual Q&A pairs directly into the store.
-- **Browse** — Interactive expanding categorical library of ingested sources. It features a scalable `Load More` paginated viewer handling thousands of vector embeddings without freezing the backend, and includes 1-click single-chunk trash deletion.
-- **Remove** — Permanently purges entire origin sources from the database and updates the active context.
+- **Browse** — Interactive expanding categorical library of ingested sources with granular chunk deletion.
+- **Remove** — Permanently purges entire origin sources from the database.
 
-All changes take effect immediately — no rebuild, app crash, or system restart needed.
+All changes take effect immediately — no rebuild, app crash, or system restart needed. Each uploaded file acts as a source; re-uploading automatically replaces all chunks connected to that filename.
 
-### How updates work
+### Allowed Upload Formats
 
-Each uploaded file is tagged as a **source** (derived from the filename). When the same file is re-uploaded:
+You can upload knowledge in two JSON formats using the sidebar:
 
-1. All existing chunks from that source are deleted
-2. The new file is parsed, chunked, and embedded
-3. New chunks are added to the vector store
+**1. Categorized FAQ Format** (Identified by a `categories` root object)
+```json
+{
+  "categories": [
+    {
+      "category": "Funds Transfer",
+      "questions": [
+        {
+          "question": "How do I add a beneficiary?",
+          "answer": "Go to settings > beneficiaries."
+        }
+      ]
+    }
+  ]
+}
+```
 
-This guarantees no stale data remains within a source. Every managed chunk also carries an `ingested_at` timestamp for conflict resolution across sources.
+**2. Standard Document Array Format** (Identified by an array of objects)
+```json
+[
+  {
+    "id": "DOC_001",
+    "content": "NUST Bank branches will be closed on Friday.",
+    "product": "General", 
+    "category": "Operation Hours"
+  }
+]
+```
 
 ## Conversational Memory & Context Compression
 
@@ -161,12 +190,12 @@ Full test suite including real ML models and live Ollama (requires Ollama runnin
 uv run pytest tests/ -v --run-e2e
 ```
 
-## Notes
+## References
 
-- Source data: [NUST Bank-Product-Knowledge.xlsx](NUST%20Bank-Product-Knowledge.xlsx)
-- FAQ data: [funds_transfer_app_features_faq (1).json](<funds_transfer_app_features_faq (1).json>)
-- Processed documents: [data/processed/](data/processed)
-- Vector store: [data/vectorstore/](data/vectorstore)
-- Cached embedding model: `data/models/` (excluded from git)
-- Terminal logs show the query, retrieved chunks, and context on every request
-- llm-guard ML models are downloaded on first run and cached by HuggingFace
+- **Dataset**: `NUST Bank-Product-Knowledge.xlsx`
+- **FAQ Dataset Appendix**: `funds_transfer_app_features_faq (1).json`
+- **UI Framework Library**: Streamlit (https://streamlit.io/) 
+- **Embeddings**: BAAI/bge-small-en-v1.5 model via `sentence-transformers`
+- **Vector Database**: ChromaDB (https://www.trychroma.com/)
+- **LLM Engine**: Ollama with model `qwen3:1.7b` parameter
+- **Security Checkers**: llm-guard library (https://github.com/protectai/llm-guard)

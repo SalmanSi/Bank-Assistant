@@ -1,3 +1,10 @@
+"""
+Local Vector Database constructor module.
+
+Handles taking processed JSON documents, chunking them optimally for embedding,
+calculating embeddings utilizing BAAI/bge-small-en-v1.5, and persisting 
+the indices inside a local ChromaDB instance across sessions.
+"""
 from __future__ import annotations
 
 import json
@@ -21,6 +28,7 @@ QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
 
 def load_documents(documents_path: Path | str = DOCUMENTS_PATH) -> list[dict[str, Any]]:
+    """Load JSON array of processed documents."""
     return json.loads(Path(documents_path).read_text(encoding="utf-8"))
 
 
@@ -36,6 +44,7 @@ def chunk_documents(
     documents: list[dict[str, Any]],
     splitter: RecursiveCharacterTextSplitter | None = None,
 ) -> list[dict[str, Any]]:
+    """Chunks documents using Langchain Recursive text splitter."""
     splitter = splitter or get_text_splitter()
     chunks: list[dict[str, Any]] = []
     for document in documents:
@@ -74,6 +83,7 @@ def chunk_documents(
 
 
 def get_embedding_model(model_name: str = EMBEDDING_MODEL_NAME) -> SentenceTransformer:
+    """Instantiate or load cached SentenceTransformer embedding model."""
     local_path = MODEL_CACHE_DIR / model_name.replace("/", "__")
     if local_path.exists():
         return SentenceTransformer(str(local_path))
@@ -115,6 +125,7 @@ def build_vectorstore(
     force_rebuild: bool = False,
     collection_name: str = COLLECTION_NAME,
 ) -> dict[str, Any]:
+    """Orchestrates document reading, chunking, and ChromaDB uploading."""
     model = model or get_embedding_model()
     documents = load_documents(documents_path)
     chunks = chunk_documents(documents)
