@@ -12,6 +12,7 @@ load_dotenv()
 import hashlib
 import re
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +74,43 @@ def _format_source_name(source: str) -> str:
         name = name.replace("_", " ").title()
         return f"{cat.upper()} — {name}"
     return source
+
+
+def _render_typing_indicator(placeholder: Any) -> None:
+    """Render an animated typing indicator with dots."""
+    indicator_id = f"typing-{uuid.uuid4().hex[:8]}"
+    placeholder.markdown(
+        f"""
+        <style>
+            .{indicator_id} {{
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--text-color);
+                opacity: 0.85;
+                font-size: 0.95rem;
+            }}
+            .{indicator_id} .dots::after {{
+                content: "";
+                display: inline-block;
+                width: 1.2em;
+                text-align: left;
+                animation: {indicator_id}-ellipsis 1.2s steps(4, end) infinite;
+            }}
+            @keyframes {indicator_id}-ellipsis {{
+                0% {{ content: ""; }}
+                25% {{ content: "."; }}
+                50% {{ content: ".."; }}
+                75% {{ content: "..."; }}
+                100% {{ content: ""; }}
+            }}
+        </style>
+        <div class="{indicator_id}">
+            <span>Assistant is typing</span><span class="dots"></span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -346,6 +384,9 @@ if prompt := st.chat_input("Ask about NUST Bank products..."):
 
     with st.chat_message("assistant"):
         from scripts.rag_pipeline import manage_memory
+
+        typing_placeholder = st.empty()
+        _render_typing_indicator(typing_placeholder)
         
         # Compact backend memory before answering
         new_summary, kept_history = manage_memory(
@@ -365,8 +406,14 @@ if prompt := st.chat_input("Ask about NUST Bank products..."):
         )
 
         def _token_gen():
+            first_token = True
             for chunk in stream:
+                if first_token:
+                    typing_placeholder.empty()
+                    first_token = False
                 yield chunk["message"]["content"]
+            if first_token:
+                typing_placeholder.empty()
 
         response: str = st.write_stream(_token_gen())
 
